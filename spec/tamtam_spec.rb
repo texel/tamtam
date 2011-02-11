@@ -1,6 +1,8 @@
 $LOAD_PATH << File.join(File.dirname(__FILE__), "..", "lib")
 require "tamtam"
 
+DOCTYPE = %Q{<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">}
+
 describe TamTam do
 
   it "should inline a style onto a div with id" do
@@ -34,21 +36,24 @@ describe TamTam do
   it "should inline a wildcard on everything" do
     css = '* { margin: 0 }'
     body = '<div>woot <span>foot</span></div> <b>grep</b>'
-    expected_output = '<div style="margin: 0;">woot <span style="margin: 0;">foot</span></div> <b style="margin: 0;">grep</b>'
+    expected_output = %Q{<div style="margin: 0;">woot <span style="margin: 0;">foot</span>
+</div> <b style="margin: 0;">grep</b>}
     TamTam.inline(:css => css, :body => body).should == expected_output        
   end
 
   it "should handle multi-line styles" do
     css = 'b { font-size: 8px;' + "\n" + 'font-color: blue; }'
     body = '<div>woot <span>foot</span></div> <b>grep</b>'
-    expected_output = '<div>woot <span>foot</span></div> <b style="font-color: blue; font-size: 8px;">grep</b>'
+    expected_output = %Q{<div>woot <span>foot</span>
+</div> <b style="font-color: blue; font-size: 8px;">grep</b>}
     TamTam.inline(:css => css, :body => body).should == expected_output
   end
 
   it "should inline a style in a hierarchy" do
     css = '#foo .bar { font-size: 8px; }'
     body = '<div id="foo">woot <span class="bar">foot</span></div>'
-    expected_output = '<div id="foo">woot <span class="bar" style="font-size: 8px;">foot</span></div>'
+    expected_output = %Q{<div id="foo">woot <span class="bar" style="font-size: 8px;">foot</span>
+</div>}
     TamTam.inline(:css => css, :body => body).should == expected_output        
   end
   
@@ -117,13 +122,13 @@ describe TamTam do
   it "should handle an entire document with a stylesheet" do
     css = '#foo { font-color: blue; }'
     document = '<html><head><style>' + css + '</style></head><body><div id="foo">woot</div></body></html>'
-    expected_output = '<html><head><style>' + css + '</style></head><body><div id="foo" style="font-color: blue;">woot</div></body></html>'
+    expected_output = %Q{#{DOCTYPE}\n<html>\n<head><style>#foo { font-color: blue; }</style></head>\n<body><div id="foo" style="font-color: blue;">woot</div></body>\n</html>\n}
     TamTam.inline(:document => document).should == expected_output        
   end
 
   it "should handle an entire document without a stylesheet" do
     document = '<html><head></head><body><div id="foo">woot</div></body></html>'
-    expected_output = '<html><head></head><body><div id="foo">woot</div></body></html>'
+    expected_output = %Q{#{DOCTYPE}\n<html>\n<head></head>\n<body><div id="foo">woot</div></body>\n</html>\n}
     TamTam.inline(:document => document).should == expected_output        
   end
   
@@ -137,7 +142,7 @@ describe TamTam do
   it "should ignore comments" do
     css = "/* div\n { background-color: black; } */ #foo { font-color: blue; } /* todo something */ #bar { font-size: 200%; }"
     document = '<html><head><style>' + css + '</style></head><body><div id="foo"><div id="bar">woot</div></div></body></html>'
-    expected_output = '<html><head><style>' + css + '</style></head><body><div id="foo" style="font-color: blue;"><div id="bar" style="font-size: 200%;">woot</div></div></body></html>'
+    expected_output = %Q{#{DOCTYPE}\n<html>\n<head><style>/* div\n { background-color: black; } */ #foo { font-color: blue; } /* todo something */ #bar { font-size: 200%; }</style></head>\n<body><div id=\"foo\" style=\"font-color: blue;\"><div id=\"bar\" style=\"font-size: 200%;\">woot</div></div></body>\n</html>\n}
     TamTam.inline(:document => document).should == expected_output        
   end
  

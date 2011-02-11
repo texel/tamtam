@@ -1,5 +1,5 @@
 require "rubygems"
-require "hpricot"
+require "nokogiri"
 # Takes CSS + HTML and converts it to inline styles.
 # css    <=  '#foo { font-color: blue; }'
 # html   <=  '<div id="foo">woot</div>'    
@@ -20,7 +20,7 @@ module TamTam
     raw_styles(css).each do |raw_style|
       style, contents = parse(raw_style)        
       next if style.match(UNSUPPORTED)
-      (doc/style).each do |element|
+      (doc.css(style)).each do |element|
         next if should_ignore?(element)
         apply_to(element, style, contents)
       end
@@ -36,7 +36,7 @@ module TamTam
     if args[:css]
       css = args[:css]
     elsif args[:document]
-      doc = Hpricot(args[:document])
+      doc = Nokogiri::HTML::DocumentFragment.parse(args[:document])
       style = (doc/"style").first
       return doc.to_s if style.nil?
       css = style.inner_html
@@ -61,28 +61,28 @@ private
   def process(args)
     return_value =
     if args[:document]
-      doc = Hpricot(args[:document])
-      style = (doc/"style").first
+      doc = Nokogiri::HTML(args[:document])
+      style = doc.css("style").first
       [(style && style.inner_html), doc]
     else
-      [args[:css], Hpricot(args[:body])]
+      [args[:css], Nokogiri::HTML::DocumentFragment.parse(args[:body])]
     end
     if args[:prune_classes]
-      (doc/"*").each { |e| e.remove_attribute(:class) if e.respond_to?(:remove_attribute) }
+      doc.css("*[class]").each { |e| e.remove_attribute('class') if e.respond_to?(:remove_attribute) }
     end
     return_value
   end
   
   def should_ignore?(element)
     el = element
-    until el.nil? do
+    until el.nil? || !el.respond_to?(:parent) do
       return true if el.respond_to?(:attributes) and !el.attributes["data-tamtam"].nil? and el.attributes["data-tamtam"].match(/ignore/)
       el = el.parent
     end
   end
   
   def remove_directives(doc)
-    (doc/'[@data-tamtam]').remove_attr("data-tamtam")
+    doc.css('[@data-tamtam]').remove_attr("data-tamtam")
   end
 
   def raw_styles(css, no_reverse = false)
@@ -118,11 +118,11 @@ private
   
   def apply_to(element, style, contents)
     return unless element.respond_to?(:get_attribute)
-    current_style = to_hash(element.get_attribute(:style))
+    current_style = to_hash(element.get_attribute('style'))
     new_styles = to_hash(contents).merge(current_style)
-    element.set_attribute(:style, prepare(new_styles))
+    element.set_attribute('style', prepare(new_styles))
   rescue Exception => e
-    raise InvalidStyleException, "Trouble on style #{style} on element #{element}"
+    raise InvalidStyleException, "Trouble on style #{style} on element #{element}: #{e.message}"
   end
   
   def to_hash(style)
