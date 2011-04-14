@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
         s.homepage = %q{http://tamtam.rubyforge.org/}
         s.authors = ["Dave Hoover"]
         s.require_paths = ['.','lib']
-        s.add_dependency('hpricot')
+        s.add_dependency('nokogiri')
         s.requirements = []
         s.files = ["lib/tamtam.rb"]
 end
