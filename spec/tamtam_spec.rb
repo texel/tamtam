@@ -1,5 +1,6 @@
 $LOAD_PATH << File.join(File.dirname(__FILE__), "..", "lib")
 require "tamtam"
+require "rspec"
 
 DOCTYPE = %Q{<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">}
 
@@ -96,7 +97,8 @@ describe TamTam do
   it "should handle nil body" do
     css = '.foo { color: black; }'
     body = nil
-    lambda { TamTam.inline(:css => css, :body => body) }.should raise_error(Exception)    
+    expected_output = ''
+    TamTam.inline(:css => css, :body => body).should == expected_output
   end
   
   it "should not truncate urls" do
@@ -136,7 +138,7 @@ describe TamTam do
     css = open(File.join(File.dirname(__FILE__), "data", "twitter.css")).read
     body = open(File.join(File.dirname(__FILE__), "data", "twitter.html")).read
     expected_output = open(File.join(File.dirname(__FILE__), "data", "expected.html")).read
-    TamTam.inline(:css => css, :body => body) == expected_output
+    TamTam.inline(:css => css, :body => body).should == expected_output
   end  
  
   it "should ignore comments" do
@@ -157,7 +159,7 @@ describe TamTam do
       }
     ~
     body = '<html><head></head><body><p class="green">woot</p></body></html>'
-    expected_output = '<html><head></head><body><p class="green" style="color: green; font-size: 10px;">woot</p></body></html>'
+    expected_output = '<p class="green" style="color: green; font-size: 10px;">woot</p>'
     TamTam.inline(:css => css, :body => body).should == expected_output
   end
   
@@ -168,22 +170,22 @@ describe TamTam do
   
   it "should remove data-tamtam directives" do
     document = '<html><head><style></style></head><body><div data-tamtam="ignore">foo</div><div>bar</div></body></html>'
-    expected = '<html><head><style></style></head><body><div>foo</div><div>bar</div></body></html>'
-    TamTam.inline(:document => document).should == expected        
+    expected = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"><html><head><style></style></head><body><div>foo</div><div>bar</div></body></html>'
+    TamTam.inline(:document => document).gsub("\n", '').should == expected        
   end
   
   it "should ignore elements with a data-tamtam='ignore' directive" do
-    css = "div\n { color: black; }"
+    css = "div { color: black; }"
     document = '<html><head><style>' + css + '</style></head><body><div data-tamtam="ignore">foo</div><div>bar</div></body></html>'
-    expected = '<html><head><style>' + css + '</style></head><body><div>foo</div><div style="color: black;">bar</div></body></html>'
-    TamTam.inline(:document => document).should == expected        
+    expected = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"><html><head><style>' + css + '</style></head><body><div>foo</div><div style="color: black;">bar</div></body></html>'
+    TamTam.inline(:document => document).gsub("\n", '').should == expected        
   end
 
   it "should ignore elements that have a parent with a data-tamtam='ignore' directive" do
-    css = "div\n { color: black; }"
+    css = "div { color: black; }"
     document = '<html><head><style>' + css + '</style></head><body><div data-tamtam="ignore"><div>foo</div></div><div><div>bar</div></div></body></html>'
-    expected = '<html><head><style>' + css + '</style></head><body><div><div>foo</div></div><div style="color: black;"><div style="color: black;">bar</div></div></body></html>'
-    TamTam.inline(:document => document).should == expected        
+    expected = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"><html><head><style>' + css + '</style></head><body><div><div>foo</div></div><div style="color: black;"><div style="color: black;">bar</div></div></body></html>'
+    TamTam.inline(:document => document).gsub("\n", '').should == expected        
   end
   
   it "should apply styles to the root element" do
@@ -202,7 +204,7 @@ describe TamTam do
   it "should prefix all styles and replace in document when passed a document" do
     css = "div\n { color: black; }"
     document = '<html><head><style>div { color: red; }</style></head><body><div>foo bar</div></body></html>'
-    expected = '<html><head><style>#tamtam div { color: red; }</style></head><body><div>foo bar</div></body></html>'
+    expected = '<style>#tamtam div { color: red; }</style><div>foo bar</div>'
     TamTam.prefix(:document => document, :prefix => "#tamtam").should == expected        
   end
   

@@ -13,7 +13,7 @@ require "nokogiri"
 module TamTam
   extend self
   
-  UNSUPPORTED = /(:first-letter|:link|:visited|:hover|:active)(\s|$)/
+  UNSUPPORTED = /(:first-letter|:link|:visited|:hover|:active|:before)(\s|$)/
   
   def inline(args)
     css, doc = process(args)
@@ -76,7 +76,7 @@ private
   def should_ignore?(element)
     el = element
     until el.nil? || !el.respond_to?(:parent) do
-      return true if el.respond_to?(:attributes) and !el.attributes["data-tamtam"].nil? and el.attributes["data-tamtam"].match(/ignore/)
+      return true if el.respond_to?(:attributes) and !el.attributes["data-tamtam"].nil? and el.attributes["data-tamtam"].value == 'ignore'
       el = el.parent
     end
   end
